@@ -1,0 +1,37 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Event syllabus checks</title></head><body><pre id="result">WAITING</pre><iframe id="game" title="Event tests" style="width:1100px;height:1000px"></iframe><script>
+(async()=>{
+ const frame=document.querySelector('#game'),prefix='english-quest-',backup=Object.fromEntries(Object.keys(localStorage).filter(k=>k.startsWith(prefix)).map(k=>[k,localStorage.getItem(k)]));
+ const check=(v,m)=>{if(!v)throw Error(m)},sleep=ms=>new Promise(r=>setTimeout(r,ms));
+ const load=()=>new Promise(r=>{frame.onload=r;frame.src='index.html?event-test='+Math.random()});
+ const doc=()=>frame.contentDocument,win=()=>frame.contentWindow;
+ const click=s=>{const b=doc().querySelector(s);check(b,'Missing '+s);check(!b.disabled,'Disabled '+s);b.click();};
+ const state=()=>JSON.parse(localStorage.getItem('english-quest-v1'));
+ const bank=()=>win().eval('QUESTIONS');
+ const answer=()=>{const a=state().active,q=bank().find(q=>q.id===a.questionIds[a.index]);click('[data-answer="'+q.answer+'"]');};
+ const finish=()=>{let n=0;while(doc().querySelector('[data-answer]')&&n++<40){if(!doc().querySelector('[data-answer]').disabled)answer();click('#next');}check(n<40,'Finish loop');};
+ const seed=async n=>{const data=win().eval('EQ.blank()'),eq=win().eval('EQ'),today=eq.dateKey(new Date());for(let i=0;i<n;i++)data.attempts.push({id:'words-1',correct:true,date:eq.addDays(today,-i),seconds:10});localStorage.setItem('english-quest-v1',JSON.stringify(data));await load();click('[data-page="syllabus"]');};
+ const events=['komperasia','omnas','ruangguru','stemco'];
+ try{
+  for(const k of Object.keys(backup))localStorage.removeItem(k);
+  await load();click('[data-page="syllabus"]');
+  check(doc().querySelectorAll('.event-card').length===4,'Four event cards absent');check(doc().querySelectorAll('.event-material details').length===39,'Source concepts missing');check(doc().body.textContent.includes('437 soal'),'Bank total wrong');
+  for(const e of events){check(doc().querySelector('[data-start="event:'+e+':training"]').disabled,'Training gate absent');check(doc().querySelector('[data-start="event:'+e+':exam"]').disabled,'Exam gate absent');}
+  frame.style.width='390px';await sleep(100);check(doc().documentElement.scrollWidth<=doc().documentElement.clientWidth,'Mobile syllabus overflow');frame.style.width='1100px';
+  for(const e of events){
+   click('[data-start="event:'+e+':daily"]');check(state().active.questionIds.length===5,'Daily length');check(state().active.questionIds.every(id=>bank().find(q=>q.id===id).event===e),'Cross-event daily');finish();check(state().runs.at(-1).mode==='event:'+e+':daily','Result event lost');click('[data-page="syllabus"]');
+  }
+  await seed(3);
+  for(const e of events){click('[data-start="event:'+e+':training"]');check(state().active.questionIds.length===25,'Training length');check(state().active.questionIds.every(id=>bank().find(q=>q.id===id).event===e),'Cross-event training');check(doc().querySelector('#hint'),'Training hint absent');click('[data-page="syllabus"]');click('#discard');}
+  await seed(7);
+  for(const e of events){
+   click('[data-start="event:'+e+':exam"]');check(state().active.questionIds.length===30,'Exam length');for(const l of ['Explorer','Challenger','Champion'])check(state().active.questionIds.filter(id=>bank().find(q=>q.id===id).level===l).length===10,'Exam balance');check(!doc().querySelector('#hint'),'Exam hint leakage');answer();check(!doc().querySelector('#feedback').textContent.includes('Jawaban:'),'Exam feedback leakage');const first=state().active.questionIds[0];
+   await load();click('#resume');check(state().active.questionIds[0]===first,'Resume changed question');check(!doc().querySelector('#hint'),'Reload leaked hint');check(!doc().querySelector('#feedback').textContent.includes('Jawaban:'),'Reload leaked answer');finish();check(state().runs.at(-1).correct===30,'Exam scoring');check(doc().body.textContent.includes('Pembahasan lengkap'),'Exam result absent');click('[data-page="syllabus"]');
+  }
+  click('[data-start="concept:stemco-cursive"]');check(doc().querySelector('.handwriting img'),'Cursive stimulus absent');await sleep(150);check(doc().querySelector('.handwriting img').naturalWidth>0,'Handwriting SVG failed to load');frame.style.width='390px';await sleep(100);check(doc().documentElement.scrollWidth<=doc().documentElement.clientWidth,'Mobile handwriting overflow');finish();frame.style.width='1100px';click('[data-page="syllabus"]');
+  click('[data-start="concept:stemco-pictures"]');check(doc().querySelector('.event-visual svg,.picture-scene svg'),'Reading picture missing');frame.style.width='390px';await sleep(100);check(doc().documentElement.scrollWidth<=doc().documentElement.clientWidth,'Mobile map overflow');finish();frame.style.width='1100px';click('[data-page="progress"]');check(doc().body.textContent.includes('Jejak belajar olimpiade'),'Event progress absent');check(doc().querySelectorAll('.event-card').length===4,'Progress event cards absent');
+  click('[data-page="parents"]');check(doc().body.textContent.includes('Jejak belajar olimpiade'),'Parent event progress absent');
+  document.querySelector('#result').textContent='PASS: 4 event cards, 39 concepts, daily scope, 3/7-day gates, 25-question training, balanced 30-question exams, hidden feedback after reload, scoring, handwriting/map assets, mobile layout, event dashboards';
+ }catch(e){document.querySelector('#result').textContent='FAIL: '+e.message;}
+ finally{for(const k of Object.keys(localStorage).filter(k=>k.startsWith(prefix)))localStorage.removeItem(k);for(const [k,v] of Object.entries(backup))localStorage.setItem(k,v);}
+})();
+</script></body></html>

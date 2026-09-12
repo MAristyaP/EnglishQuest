@@ -1,0 +1,41 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Student session checks</title></head><body><pre id="result">WAITING</pre><iframe id="game" title="Student session tests" style="width:1100px;height:950px"></iframe><script>
+(async()=>{
+ const frame=document.querySelector('#game'),prefix='english-quest-',backup=Object.fromEntries(Object.keys(localStorage).filter(k=>k.startsWith(prefix)).map(k=>[k,localStorage.getItem(k)]));
+ const check=(v,m)=>{if(!v)throw Error(m)},sleep=ms=>new Promise(r=>setTimeout(r,ms));
+ const load=()=>new Promise(r=>{frame.onload=r;frame.src='index.html?student-test='+Math.random()});
+ const doc=()=>frame.contentDocument,win=()=>frame.contentWindow;
+ const click=s=>{const b=doc().querySelector(s);check(b,'Missing '+s);check(!b.disabled,'Disabled '+s);b.click();};
+ const waitFor=async(fn,message)=>{for(let i=0;i<100;i++){if(fn())return;await sleep(25)}throw Error(message)};
+ const key=()=>{const m=JSON.parse(localStorage.getItem('english-quest-profiles-v1')||'null');return m?m.profiles.find(p=>p.id===m.active).key:'english-quest-v1'},state=()=>JSON.parse(localStorage.getItem(key()));
+ const xp=()=>state().attempts.reduce((n,a)=>n+(a.correct?20:5),0);
+ const dateAgo=n=>{const d=new Date();d.setDate(d.getDate()-n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+ const finish=()=>{let guard=0;while(doc().querySelector('[data-answer]')&&guard++<40){if(!doc().querySelector('[data-answer="0"]').disabled)click('[data-answer="0"]');click('#next');}check(guard<40,'Completion loop');};
+ try{
+  for(const k of Object.keys(backup))localStorage.removeItem(k);
+  await load();click('[data-start="daily"]');const runId=state().active.id;
+  click('[data-confidence="guess"]');click('#mark-confused');check(doc().querySelector('#mark-confused').getAttribute('aria-pressed')==='true','Flag appearance');click('[data-answer="0"]');
+  check(doc().querySelector('[data-confidence="sure"]').disabled,'Confidence must lock after answering');check(state().attempts[0].confidence==='guess'&&state().attempts[0].confused,'Question signals not saved');
+  click('[data-page="student"]');await load();click('#resume');check(doc().querySelector('[data-confidence="guess"]').getAttribute('aria-pressed')==='true','Resume lost confidence');check(doc().querySelector('#mark-confused').getAttribute('aria-pressed')==='true','Resume lost mark');
+  finish();check(doc().querySelector('.reflection-form'),'Survey absent after completion');check(doc().querySelector('.sharing-note').textContent.includes('orang tua'),'Sharing notice absent');
+  frame.style.width='390px';await sleep(100);check(doc().documentElement.scrollWidth<=doc().documentElement.clientWidth,'Mobile survey overflows');check([...doc().querySelectorAll('.survey-moods .survey-choice')].every(el=>el.getBoundingClientRect().right<=390),'Mobile mood options overflow');frame.style.width='1100px';
+  const before=xp();click('#save-reflection');check(doc().querySelector('#student-error').textContent.length>20,'Missing validation');check(!(state().reflections||[]).length,'Incomplete survey saved');
+  click('input[name="student-mood"][value="confused"]');click('input[name="student-difficulty"][value="grammar"]');click('input[name="student-difficulty"][value="choices"]');click('input[name="student-difficulty"][value="none"]');check(!doc().querySelector('input[value="grammar"]').checked&&!doc().querySelector('input[value="choices"]').checked,'None not exclusive');
+  click('input[name="student-difficulty"][value="grammar"]');check(!doc().querySelector('input[name="student-difficulty"][value="none"]').checked,'None remains selected');click('input[name="student-help"][value="steps"]');
+  doc().querySelector('#student-note').value='Aku bingung membedakan waktu. <img src=x onerror=alert(1)>';
+  check(doc().querySelector('input[name="student-question"]:checked'),'Flagged question not linked to survey');click('#save-reflection');
+  check(state().reflections.length===1&&state().reflections[0].runId===runId,'Survey context lost');check(xp()===before,'Survey changed XP');check(doc().querySelector('.mini-lesson'),'Mini lesson missing');
+  click('[data-start="support:'+runId+'"]');check(doc().querySelector('.quiz-meta').textContent.includes('dari 3'),'Guided followup length');check(state().active.questionIds.every(id=>win().eval('QUESTIONS').find(q=>q.id===id)?.topic==='grammar'),'Followup ignored grammar difficulty');finish();const followRun=state().runs.at(-1).id;click('#skip-reflection');check(state().skippedReflections.includes(followRun),'Skip not saved');
+  click('[data-page="student"]');check(!doc().querySelector('.reflection-entry img'),'Student note not escaped');click('[data-page="parents"]');check(doc().body.textContent.includes('Yang anak rasakan'),'Self report label');check(doc().body.textContent.includes('Hasil sesi yang tercatat'),'Evidence label');check(!doc().querySelector('.reflection-entry img'),'Parent note not escaped');
+  click('[data-page="home"]');click('[data-start="daily"]');check(state().active.questionIds.filter(id=>win().eval('QUESTIONS').find(q=>q.id===id)?.topic==='grammar').length>=2,'Adaptive ignored student survey');click('[data-page="student"]');click('#discard');
+  const select=doc().querySelector('#reflection-session');select.value=followRun;select.dispatchEvent(new (win().Event)('change',{bubbles:true}));click('input[name="student-mood"][value="tired"]');click('input[name="student-difficulty"][value="focus"]');click('input[name="student-help"][value="break"]');click('#save-reflection');
+  check(state().reflections.length===2,'Rest survey not saved');check(!doc().querySelector('.reflection-saved [data-start]'),'Rest choice started more homework');check(state().active===null,'Rest choice created a session');
+  let saved=state();saved.reflections[0].date=dateAgo(3);localStorage.setItem(key(),JSON.stringify(saved));await load();click('[data-page="student"]');check(doc().querySelector('.checkin-card'),'Three-day checkin absent');click('[data-checkin="same"]');check(state().reflections[0].checkins.length===1,'Checkin not saved');check(!doc().querySelector('.checkin-card'),'Checkin repeated same day');
+  saved=state();saved.reflections[0].date=dateAgo(6);saved.reflections[0].checkins[0].date=dateAgo(3);localStorage.setItem(key(),JSON.stringify(saved));await load();click('[data-page="student"]');click('[data-checkin="better"]');check(!doc().querySelector('.checkin-card'),'Improved checkin should close');
+  click('[data-page="profiles"]');const original=state(),fileData={format:'EnglishQuestBackup',version:1,profiles:[{name:'Survey restored',avatar:'🐼',data:original}]},transfer=new (win().DataTransfer)();transfer.items.add(new (win().File)([JSON.stringify(fileData)],'student-backup.json',{type:'application/json'}));const input=doc().querySelector('#restore');input.files=transfer.files;input.dispatchEvent(new (win().Event)('change',{bubbles:true}));await waitFor(()=>doc().querySelector('#restore-status').textContent.includes('1 profil dipulihkan'),'Student backup restore failed');
+  const meta=JSON.parse(localStorage.getItem('english-quest-profiles-v1')),restored=meta.profiles.at(-1);click('[data-profile="'+restored.id+'"]');check(state().reflections.length===2&&state().reflections[0].checkins.at(-1).feeling==='better','Restore lost surveys/checkins');check(state().attempts[0].confidence==='guess','Restore lost confidence');
+  click('[data-page="profiles"]');doc().querySelector('#profile-name').value='New child';click('#create-profile');check(state().reflections.length===0,'New child inherited surveys');
+  document.querySelector('#result').textContent='PASS: optional confidence/marks, reload, nonblocking survey, validation/exclusive choices, session linkage, no XP change, guided support, adaptive targeting, skip/rest, parent evidence split, escaped notes, 3-day checkins, backup and profile isolation';
+ }catch(e){document.querySelector('#result').textContent='FAIL: '+e.message;}
+ finally{frame.remove();for(const k of Object.keys(localStorage))if(k.startsWith(prefix))localStorage.removeItem(k);for(const [k,v]of Object.entries(backup))localStorage.setItem(k,v);}
+})();
+</script></body></html>

@@ -1,0 +1,60 @@
+<!doctype html><html><head><meta charset="utf-8"><title>English Quest interaction tests</title></head><body><pre id="result">WAITING</pre><iframe id="game" style="width:1100px;height:850px" title="Game under test"></iframe>
+<script>
+(async()=>{
+  const key='english-quest-v1',backup=localStorage.getItem(key),frame=document.querySelector('#game');
+  const check=(value,message)=>{if(!value)throw Error(message);};
+  const load=()=>new Promise(resolve=>{frame.onload=resolve;frame.src='index.html?browser-test='+Math.random();});
+  const doc=()=>frame.contentDocument;
+  const click=selector=>{const b=doc().querySelector(selector);check(b,'Missing '+selector);check(!b.disabled,'Disabled '+selector);b.click();};
+  const seed=days=>{const attempts=[];for(let i=0;i<days;i++){const d=new Date();d.setDate(d.getDate()-i*2);attempts.push({id:'words-1',correct:true,date:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),seconds:10});}localStorage.setItem(key,JSON.stringify({attempts}));};
+  const choose=level=>{const select=doc().querySelector('#difficulty');select.value=level;select.dispatchEvent(new frame.contentWindow.Event('change',{bubbles:true}));};
+  const search=term=>{const input=doc().querySelector('#search');input.value=term;input.dispatchEvent(new frame.contentWindow.Event('input',{bubbles:true}));};
+  try{
+    seed(0);await load();check(doc().body.textContent.includes('Small steps.'),'Home render');
+    click('[data-page="missions"]');
+    const all=doc().querySelector('#filter-status').textContent;
+    for(const level of ['Explorer','Challenger','Champion']){
+      choose(level);check(doc().querySelector('#filter-status').textContent!==all,'Filter did not change');
+      check([...doc().querySelectorAll('.mission .tag')].every(t=>t.textContent.includes(level)),'Wrong card labels');
+      click('[data-start="grammar"]');check(doc().querySelector('.quiz-meta').textContent.includes(level),'Question ignored level');
+      click('[data-page="missions"]');click('#discard');
+    }
+    choose('Champion');search('pronoun');check(doc().querySelectorAll('.mission').length===1,'Search and level not combined');
+    choose('Challenger');click('[data-start="grammar"]');check(doc().querySelector('.quiz-meta').textContent.includes('Pronoun'),'Search ignored by session');
+    click('[data-answer="0"]');check(doc().querySelector('#feedback').textContent.includes('XP'),'Practice feedback missing');
+    click('#next');click('[data-page="missions"]');
+    await load();check(doc().querySelector('#resume'),'Resume absent after reload');click('#resume');
+    check(doc().querySelector('.quiz-meta').textContent.includes('Soal 2'),'Resume index wrong');
+    click('[data-page="missions"]');click('#discard');
+    click('[data-page="missions"]');search('zzzzzz');check(doc().querySelector('#mixed-start').disabled,'Empty filter must disable start');
+    click('#reset-filters');check(doc().querySelectorAll('.mission').length===6,'Reset failed');
+    check(doc().querySelector('[data-start="training:Explorer"]').disabled,'Training unlocked at zero/one day');
+    seed(3);await load();click('[data-page="missions"]');
+    for(const level of ['Explorer','Challenger','Champion']){
+      click('[data-start="training:'+level+'"]');check(doc().querySelector('.quiz-meta').textContent.includes('dari 25'),'Training count');
+      check(doc().querySelector('.quiz-meta').textContent.includes(level),'Training level');
+      click('[data-page="missions"]');click('#discard');
+    }
+    check(doc().querySelector('[data-start="exam"]').disabled,'Exam unlocked before seven days');
+    seed(7);await load();click('[data-page="missions"]');click('[data-start="exam"]');
+    const levels={Explorer:0,Challenger:0,Champion:0};
+    for(let i=0;i<30;i++){
+      const meta=doc().querySelector('.quiz-meta').textContent;
+      check(meta.includes('dari 30'),'Exam length');
+      for(const level of Object.keys(levels))if(meta.includes(level))levels[level]++;
+      click('[data-answer="0"]');
+      check(doc().querySelector('#feedback').textContent.includes('Jawaban tersimpan'),'Exam acknowledgement');
+      check(!doc().querySelector('.option.correct,.option.wrong'),'Exam leaked answer');
+      click('#next');
+    }
+    check(Object.values(levels).every(n=>n===10),'Exam level balance');
+    check(doc().body.textContent.includes('Ujian selesai!'),'Exam result missing');
+    check(doc().querySelectorAll('.results .feedback').length===30,'Full exam explanations missing');
+    click('[data-page="progress"]');check(doc().body.textContent.includes('Ujian 7 hari · Gabungan'),'Completed run absent from dashboard');
+    await load();click('[data-page="progress"]');check(doc().body.textContent.includes('Ujian 7 hari · Gabungan'),'Run not persisted');
+    click('[data-page="syllabus"]');check(doc().body.textContent.includes('437 soal'),'Expanded bank not loaded');
+    document.querySelector('#result').textContent='PASS: live difficulty filters, combined search, resume after reload, 3-day unlock, three 25-question levels, 7-day lock, balanced 30-question exam, hidden answers, results and persistent history, 437 questions';
+  }catch(e){document.querySelector('#result').textContent='FAIL: '+e.message;}
+  finally{if(backup===null)localStorage.removeItem(key);else localStorage.setItem(key,backup);}
+})();
+</script></body></html>

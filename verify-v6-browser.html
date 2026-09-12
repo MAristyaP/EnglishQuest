@@ -1,0 +1,21 @@
+<!doctype html><html><meta charset="utf-8"><title>Picture Quest tests</title><pre id="result">WAITING</pre><iframe id="game" style="width:1100px;height:1000px"></iframe><script>
+(async()=>{
+ const frame=document.querySelector('#game'),backup=Object.fromEntries(Object.keys(localStorage).filter(k=>k.startsWith('english-quest-')).map(k=>[k,localStorage.getItem(k)]));
+ const check=(x,m)=>{if(!x)throw Error(m)},sleep=ms=>new Promise(r=>setTimeout(r,ms));
+ const load=()=>new Promise(r=>{frame.onload=r;frame.src='index.html?picture-check='+Math.random()});
+ const doc=()=>frame.contentDocument,w=()=>frame.contentWindow,click=s=>{const b=doc().querySelector(s);check(b&&!b.disabled,'Unavailable '+s);b.click();};
+ const state=()=>JSON.parse(localStorage.getItem('english-quest-v1'));
+ try{
+  for(const k of Object.keys(backup))localStorage.removeItem(k);await load();
+  check(doc().querySelector('.picture-launch'),'Home picture entry missing');click('[data-start="picture:Explorer"]');check(state().active.questionIds.length===5,'Picture pack length');check(doc().querySelector('.picture-scene svg'),'SVG absent');
+  click('[data-picture-zoom]');check(doc().querySelector('#picture-dialog').open,'Zoom not open');check(doc().querySelector('#picture-dialog svg'),'Zoom content absent');click('#picture-dialog button');check(!doc().querySelector('#picture-dialog').open,'Zoom not closed');check(state().attempts.length===0,'Zoom changed score');
+  frame.style.width='390px';await sleep(100);check(doc().documentElement.scrollWidth<=doc().documentElement.clientWidth,'Mobile question overflow');
+  const pq=w().eval('PictureQuest');for(const key of Object.keys(pq.scenes)){const holder=doc().createElement('section');holder.innerHTML=pq.visual({picture:key});doc().querySelector('#app').appendChild(holder);check(holder.querySelector('svg').getAttribute('aria-label').length>40,'Alt description missing');check(doc().documentElement.scrollWidth<=doc().documentElement.clientWidth,'Scene overflow: '+key);holder.remove();}
+  click('[data-picture-zoom]');check(doc().querySelector('#picture-dialog').open,'Mobile zoom absent');click('#picture-dialog button');
+  click('[data-answer="0"]');const first=state().active.questionIds[0];await load();click('#resume');check(state().active.questionIds[0]===first,'Resume changed image question');check(doc().querySelector('.picture-scene svg'),'Resume lost image');
+  let guard=0;while(doc().querySelector('[data-answer]')&&guard++<10){if(!doc().querySelector('[data-answer]').disabled)click('[data-answer="0"]');click('#next');}check(guard<10,'Completion loop');check(doc().querySelectorAll('.picture-scene').length===5,'Result images missing');check(state().runs.at(-1).total===5,'Result missing');
+  document.querySelector('#result').textContent='PASS: Picture Quest entry, SVG scenes and descriptions, desktop/mobile zoom, no score impact, mobile overflow, reload, results with all images';
+ }catch(e){document.querySelector('#result').textContent='FAIL: '+e.message;}
+ finally{for(const k of Object.keys(localStorage).filter(k=>k.startsWith('english-quest-')))localStorage.removeItem(k);for(const [k,v] of Object.entries(backup))localStorage.setItem(k,v);}
+})();
+</script></html>

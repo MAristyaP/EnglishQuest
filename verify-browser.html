@@ -1,0 +1,21 @@
+<!doctype html><meta charset="utf-8"><title>English Quest browser check</title><pre id="result">WAITING</pre><iframe src="index.html" id="game" style="width:1100px;height:800px"></iframe><script>
+document.querySelector('#game').onload=function(){
+try{
+const doc=this.contentDocument;
+const click=s=>{const b=doc.querySelector(s);if(!b)throw Error('Missing '+s);b.click();};
+if(!doc.body.textContent.includes('Small steps.'))throw Error('Home did not render');
+click('[data-page="missions"]');
+click('[data-start="grammar"]');
+if(doc.querySelectorAll('[data-answer]').length!==4)throw Error('Options missing');
+click('[data-answer="0"]');
+if(!doc.querySelector('#feedback').textContent.includes('XP'))throw Error('Feedback missing');
+click('#next');
+if(!doc.body.textContent.includes('Soal 2 dari'))throw Error('Next failed');
+click('[data-page="progress"]');
+if(!doc.querySelector('.history'))throw Error('History missing');
+click('[data-page="syllabus"]');
+if(!doc.body.textContent.includes('Pronoun'))throw Error('Syllabus missing');
+document.querySelector('#result').textContent='PASS: home, navigation, mission, answer, feedback, next, progress history, syllabus';
+}catch(e){document.querySelector('#result').textContent='FAIL: '+e.message;}
+};
+</script>
