@@ -1,0 +1,5 @@
+<!doctype html><meta charset="utf-8"><style>body{margin:0}img{display:block;width:1240px}iframe{display:none}</style><iframe src="index.html"></iframe><img id="page"><script>
+document.querySelector('iframe').onload=()=>{const w=document.querySelector('iframe').contentWindow,EQ=w.eval('EQ'),bank=w.eval('QUESTIONS'),topics=w.eval('TOPICS'),today=EQ.dateKey(new Date()),s=EQ.blank();
+for(let i=0;i<100;i++)s.attempts.push({id:bank[i%bank.length].id,date:EQ.addDays(today,-Math.floor(i/10)),correct:i%4!==0,seconds:30,mode:'daily'});
+const pages=w.eval('questReportPages')(s,'Nara — Contoh Laporan',today,bank,topics),n=Number(new URLSearchParams(location.search).get('page')||0);document.querySelector('#page').src=URL.createObjectURL(new Blob([pages[n]],{type:'image/jpeg'}));};
+</script>

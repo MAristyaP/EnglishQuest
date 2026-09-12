@@ -109,3 +109,17 @@ Pemulihan menambahkan profil baru, tanpa menimpa profil yang sudah ada. Cadangan
 Jalankan `node verify-v7.cjs` atau `node verify.cjs` untuk integritas bank soal, paket event, aturan belajar, Sesi Siswa, profil, dan cadangan. `python check_browser.py` memeriksa interaksi nyata di Edge dengan profil pengujian terpisah; server lokal harus aktif. Rekaman diuji menggunakan aliran audio sintetis, bukan mikrofon pengguna. Pemutaran suara diuji dengan pengganti mesin ucapan, bukan penilaian kualitas audio oleh pendengar. Pratinjau Sesi Siswa dan event memakai penyimpanan tiruan sehingga tidak menulis progres pengguna.
 
 Website belum diterbitkan ke internet.
+
+## Pembaruan kenyamanan & rekap 3 hari
+- Soal berukuran 24–30 px; bacaan 19–20 px dan pilihan jawaban 19 px, dengan teks gelap pada latar pastel lembut. Pilihan keyakinan berada setelah pilihan jawaban.
+- Kamus menampilkan 6 kata per tanggal lokal, tetap sama setelah refresh, dan berganti otomatis saat halaman terbuka. Koleksi 24 kata berputar setiap 4 hari. Kata tersimpan ditampilkan 6 per halaman; catatan pribadi tetap tersimpan.
+- Rekap kesalahan memakai siklus 3 hari kalender sejak tanggal jawaban pertama setiap profil. Paket tersedia pada hari berikutnya setelah siklus selesai. Soal salah dari semua modul disatukan tanpa duplikat, termasuk yang kemudian dijawab benar; kesalahan dari latihan rekap sendiri tidak membuat siklus baru. Aktivitas interaktif tetap memakai bentuk interaktif.
+- Paket rekap dapat dibuka di Beranda, Jelajahi misi, Perkembanganku, dan hasil sesi. Pilih “Latihan rekap kesalahan” di Akurasi per dunia untuk melihat hasil latihan ulang secara terpisah. Sesi, riwayat, dan cadangan menggunakan penyimpanan profil yang sama.
+- Ruang orang tua menyediakan Download laporan PDF: ringkasan profil, akurasi per dunia, rekap kesalahan, akurasi rekap, dan catatan 7 hari. PDF dibuat lokal tanpa internet, berupa halaman gambar untuk mempertahankan huruf nama siswa. Hasil ujian belum selesai dikecualikan.
+- Verifikasi: `node verify-v8.cjs` dan `python check_browser.py verify-v8-browser.html verify-v7-browser.html`.
+
+## Laporan PDF visual
+- Tiga bagian utama: Ringkasan, Kemampuan, serta Rekap & langkah. Tab di bagian atas PDF dapat diklik untuk berpindah bagian.
+- Kartu ringkasan 7 hari, grafik aktivitas harian, dua bar akurasi per dunia (semua jawaban dan latihan rekap), serta saran pendampingan singkat.
+- Rekap mengikuti siklus 3 hari; lebih dari 4 siklus dilanjutkan ke halaman arsip tambahan. Data kosong ditandai belum ada data.
+- Warna pastel dan huruf besar ditujukan untuk pembacaan digital dan cetak A4. Navigasi klik didukung pembaca PDF yang mendukung tautan internal.

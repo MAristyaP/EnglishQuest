@@ -1,0 +1,12 @@
+.quiz .panel{background:#f8f5ff;color:#233247}
+.quiz .question{font-size:clamp(24px,3vw,30px);line-height:1.55;color:#223047}
+.quiz .passage,.results .passage,.quiz details .passage{font-size:20px;line-height:1.85;color:#293548;background:#fff8e9}
+.quiz .option,.quiz .activity-options button,.quiz .word-tile,.quiz .evidence-line{font-size:19px;line-height:1.65;color:#25334b}
+.quiz .option{background:#f0ebfa;border-color:#b7abc8;padding:18px}
+.quiz .option:nth-child(2){background:#eaf3fa}.quiz .option:nth-child(3){background:#fff3e5}.quiz .option:nth-child(4){background:#faedf2}
+.quiz .option span{font-size:17px;color:#29354b;background:#ffffff}
+.quiz .option.correct{background:#dfefdf;border:2px solid #39724a;color:#24452c}.quiz .option.wrong{background:#fae5e5;border:2px solid #a14343;color:#672c2c}.quiz .option.selected{background:#e4dcf7;border:2px solid #70529d}
+.quiz .feedback,.results .feedback,.quiz .interaction-zone p,.quiz .chat,.quiz .edit-preview{font-size:19px;line-height:1.8;color:#293548}
+.quiz .notice,.quiz .quiz-meta{font-size:14px;color:#49566a}.quiz .student-tools{margin-top:24px}
+.word-pagination{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:center}.weekly-recap{margin-top:24px;background:#edf6f2}.weekly-recap summary{font-size:16px;line-height:1.7}.weekly-recap p,.daily-word-note{font-size:15px;line-height:1.8;color:#35455a}
+@media(max-width:600px){.quiz .question{font-size:24px}.quiz .passage,.results .passage{font-size:19px}.quiz .option{padding:15px}.section-head{flex-wrap:wrap;gap:12px}}

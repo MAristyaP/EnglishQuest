@@ -1,5 +1,5 @@
-const Interactive=(()=>{
- const task=q=>q&&ACTIVE_TASKS[q.id],isActive=s=>!!s?.mode?.startsWith('play:')&&!!task(s.questions?.[s.index]);
+﻿const Interactive=(()=>{
+ const task=q=>q&&ACTIVE_TASKS[q.id],isActive=s=>(!!s?.mode?.startsWith('play:')||!!s?.mode?.startsWith('recap:'))&&!!task(s.questions?.[s.index]);
  const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
  function fresh(q){const t=task(q);return {qid:q.id,order:[],bankOrder:t?.tokens?shuffle(t.tokens.map((_,i)=>i)):[],choice:null,proof:null,part:null,replacement:null,path:[]};}
  function nodeFor(t,path){let node='start';for(const step of path){if(!node||step.node!==node||!t.nodes[node]?.choices[step.choice])return undefined;node=t.nodes[node].choices[step.choice].next;}return node;}
@@ -46,3 +46,4 @@ const Interactive=(()=>{
  }
  return {task,isActive,fresh,draft,nodeFor,evaluate,answerData,lexicon,wordStatus,plan};
 })();
+

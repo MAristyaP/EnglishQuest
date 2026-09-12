@@ -1,0 +1,16 @@
+require('./verify-v7.cjs');
+const {boot}=require('./verify-v4.cjs'),assert=require('assert');
+const {t,elements,storage}=boot(),W=t.Weekly;t.reset();
+const today=t.dateKey(),first=t.EQ.addDays(today,-3),second=t.EQ.addDays(first,2),bank=t.QUESTIONS;
+const attempt=(id,date,correct,mode='daily')=>({id,date,correct,mode,seconds:10});
+t.state.attempts=[attempt(bank[0].id,first,false),attempt(bank[0].id,second,false),attempt(bank[1].id,second,false),attempt(bank[0].id,second,true),attempt(bank[2].id,today,false)];
+let c=W.cycles(t.state,today,bank);assert.equal(c.length,2);assert.equal(c[0].ids.length,2);assert(c[0].closed);assert(!c[1].closed);assert(W.plan('recap:'+first,t.state,second,bank).error);
+t.start('recap:'+first);assert.equal(t.session.questions.length,2);t.answer(t.session.questions[0].answer);t.next();t.leaveSession();const reload=boot(storage);reload.t.resume();assert.equal(reload.t.session.index,1);reload.t.answer(reload.t.session.questions[1].answer);reload.t.next();
+c=W.cycles(reload.t.state,today,bank);assert.equal(c[0].attempts.length,2);assert.equal(c[0].ids.length,2);assert.equal(c[1].ids.length,1);assert(reload.t.profiles.validateBackup(reload.t.profiles.backup(reload.t.state))[0].data.attempts.some(a=>a.mode==='recap:'+first));
+assert.equal(W.dailyWords(t.QUEST_WORDS,today).length,6);assert.deepEqual(W.dailyWords(t.QUEST_WORDS,today),W.dailyWords(t.QUEST_WORDS,today));assert(!W.dailyWords(t.QUEST_WORDS,today).some(w=>W.dailyWords(t.QUEST_WORDS,t.EQ.addDays(today,1)).some(n=>n.id===w.id)));
+const exam={attempts:[{...attempt(bank[0].id,first,false,'exam'),runId:'active'}],active:{id:'active',exam:true}};assert.equal(W.cycles(exam,today,bank)[0].ids.length,0);assert(W.reportLines(exam,'Test',today,bank,t.TOPICS).includes('0 jawaban | Akurasi Belum ada data'));
+t.abandon();t.start('daily');const html=elements.get('#app').innerHTML;assert(html.indexOf('class="options"')<html.indexOf('class="student-tools"'));
+console.log('PASS: three-day boundaries, deduplication, reattempt accuracy, resume/backup, daily six-word rotation, exam privacy, confidence placement.');
+t.abandon();t.reset();const evidence=bank.find(q=>q.activity==='evidence');t.state.attempts=[attempt(evidence.id,first,false)];t.start('recap:'+first);assert(t.Interactive.isActive(t.session));const draft=t.Interactive.fresh(evidence),task=t.ACTIVE_TASKS[evidence.id];draft.choice=evidence.answer;draft.proof=task.proof;t.answer(evidence.answer,{draft});t.leaveSession();const rr=boot(storage);rr.t.resume();assert(rr.t.session.answers[0].interaction);rr.t.next();assert.equal(W.cycles(rr.t.state,today,bank)[0].attempts[0].correct,true);assert.equal(W.cycles(t.EQ.blank(),today,bank).length,0);
+console.log('PASS: interactive evidence recap preserves grading and reload; fresh profile has no inherited recap.');
+t.abandon();t.reset();t.state.attempts=bank.slice(0,120).map(q=>attempt(q.id,first,false));t.start('recap:'+first);assert.equal(t.session.questions.length,120);t.leaveSession();const large=boot(storage);large.t.resume();assert.equal(large.t.session.questions.length,120);assert(large.t.profiles.validateBackup(large.t.profiles.backup(large.t.state))[0].data.active);console.log('PASS: recap larger than 100 questions retains resume and backup.');

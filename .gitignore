@@ -12,3 +12,6 @@ __pycache__/
 !.env.example
 *backup*.json
 *cadangan*.json
+
+# Synthetic report preview fixture
+!preview-report.html
